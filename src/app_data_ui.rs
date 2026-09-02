@@ -36,6 +36,16 @@ impl VideoManagerApp {
             self.ui_playlist_list(&mut columns[0]);
             self.ui_playlist_editor(&mut columns[1]);
         });
+        ui.separator();
+        ui.collapsing("Raw Data JSON preview", |ui| {
+            if let Ok(value) = serde_json::to_value(&self.data) {
+                egui::ScrollArea::vertical()
+                    .max_height(360.0)
+                    .show(ui, |ui| {
+                        egui_json_tree::JsonTree::new("data-json-preview", &value).show(ui);
+                    });
+            }
+        });
     }
 
     fn ui_playlist_list(&mut self, ui: &mut egui::Ui) {
@@ -191,50 +201,49 @@ impl VideoManagerApp {
         });
 
         ui.separator();
-        ui.strong("Chapters");
-        let chapter_count = self.data.playlists[playlist_index].chapters.len();
-        let mut action: Option<(&'static str, usize)> = None;
-        egui::ScrollArea::vertical().show(ui, |ui| {
-            for index in 0..chapter_count {
-                let chapter = &mut self.data.playlists[playlist_index].chapters[index];
-                ui.group(|ui| {
-                    ui.horizontal(|ui| {
-                        ui.label(format!("{}.", index + 1));
-                        ui.text_edit_singleline(&mut chapter.name);
-                        if ui.small_button("↑").clicked() && index > 0 {
-                            action = Some(("up", index));
-                        }
-                        if ui.small_button("↓").clicked() && index + 1 < chapter_count {
-                            action = Some(("down", index));
-                        }
-                        if ui.small_button("Remove").clicked() {
-                            action = Some(("remove", index));
-                        }
-                    });
-                    ui.horizontal(|ui| {
-                        ui.label("start");
-                        ui.add(egui::DragValue::new(&mut chapter.start_seconds).speed(0.25));
-                        ui.label("end");
-                        ui.add(egui::DragValue::new(&mut chapter.end_seconds).speed(0.25));
-                    });
-                    ui.horizontal(|ui| {
-                        ui.label("videoUrl");
-                        ui.add(
-                            egui::TextEdit::singleline(&mut chapter.video_url).desired_width(420.0),
-                        );
+        ui.strong("Chapters · drag ☰ to reorder");
+        let mut remove_index = None;
+        {
+            let chapters = &mut self.data.playlists[playlist_index].chapters;
+            let response = egui_dnd::dnd(ui, ("playlist-chapters", playlist_index))
+                .with_animation_time(0.12)
+                .show(0..chapters.len(), |ui, index, handle, state| {
+                    let chapter = &mut chapters[index];
+                    egui::Frame::group(ui.style()).show(ui, |ui| {
+                        ui.horizontal(|ui| {
+                            handle.ui(ui, |ui| {
+                                ui.label(if state.dragged { "↕" } else { "☰" });
+                            });
+                            ui.label(format!("{}.", index + 1));
+                            ui.text_edit_singleline(&mut chapter.name);
+                            if ui.small_button("Remove").clicked() {
+                                remove_index = Some(index);
+                            }
+                        });
+                        ui.horizontal(|ui| {
+                            ui.label("start");
+                            ui.add(egui::DragValue::new(&mut chapter.start_seconds).speed(0.25));
+                            ui.label("end");
+                            ui.add(egui::DragValue::new(&mut chapter.end_seconds).speed(0.25));
+                            ui.label(format!("duration {:.1}s", chapter.duration()));
+                        });
+                        ui.horizontal(|ui| {
+                            ui.label("videoUrl");
+                            ui.add(
+                                egui::TextEdit::singleline(&mut chapter.video_url)
+                                    .desired_width(420.0),
+                            );
+                        });
                     });
                 });
+            if response.is_drag_finished() {
+                response.update_vec(chapters);
             }
-        });
-        if let Some((kind, index)) = action {
-            let result = match kind {
-                "up" => move_chapter(&mut self.data, playlist_index, index, index - 1),
-                "down" => move_chapter(&mut self.data, playlist_index, index, index + 1),
-                _ => remove_chapter(&mut self.data, playlist_index, index).map(|_| ()),
-            };
-            if let Err(error) = result {
-                self.log(error.to_string());
-            }
+        }
+        if let Some(index) = remove_index
+            && let Err(error) = remove_chapter(&mut self.data, playlist_index, index)
+        {
+            self.log(error.to_string());
         }
     }
 }

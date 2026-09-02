@@ -5,12 +5,13 @@ use eframe::egui;
 
 use crate::config::AppConfig;
 use crate::data_json::{
-    add_chapter, add_playlist, load_data, move_chapter, remove_chapter, remove_playlist, save_data,
+    add_chapter, add_playlist, load_data, remove_chapter, remove_playlist, save_data,
     upsert_bundle_playlist,
 };
 use crate::jobs::{JobMessage, JobValue, spawn_job};
 use crate::local::{
-    bundle_object_name, cut_all, cut_chapter, load_bundle, record_uploaded_url, scan_bundles,
+    bundle_object_name, cut_all, cut_chapter, cut_relative_name, load_bundle, record_uploaded_url,
+    scan_bundles,
 };
 use crate::model::{BundleInfo, Chapter, DataFile, R2Object, VideoMetadata};
 use crate::pipeline::cut_and_upload;
@@ -116,6 +117,7 @@ impl Default for VideoManagerApp {
     }
 }
 
+include!("app_widgets.rs");
 include!("app_core.rs");
 include!("app_youtube.rs");
 include!("app_local_ui.rs");
@@ -141,33 +143,6 @@ impl eframe::App for VideoManagerApp {
                 .request_repaint_after(std::time::Duration::from_millis(100));
         }
     }
-}
-
-fn text_row(ui: &mut egui::Ui, label: &str, value: &mut String, password: bool) {
-    ui.horizontal(|ui| {
-        ui.label(format!("{label}:"));
-        let edit = egui::TextEdit::singleline(value)
-            .desired_width(420.0)
-            .password(password);
-        ui.add(edit);
-    });
-}
-
-fn path_row(ui: &mut egui::Ui, label: &str, value: &mut String, folder: bool) {
-    ui.horizontal(|ui| {
-        ui.label(format!("{label}:"));
-        ui.add(egui::TextEdit::singleline(value).desired_width(420.0));
-        if ui.button("Browse…").clicked() {
-            let picked = if folder {
-                rfd::FileDialog::new().pick_folder()
-            } else {
-                rfd::FileDialog::new().pick_file()
-            };
-            if let Some(path) = picked {
-                *value = path.to_string_lossy().into_owned();
-            }
-        }
-    });
 }
 
 fn format_bytes(bytes: u64) -> String {

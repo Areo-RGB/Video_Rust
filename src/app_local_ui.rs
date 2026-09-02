@@ -113,39 +113,41 @@ impl VideoManagerApp {
             }
         });
         ui.separator();
-        egui::ScrollArea::vertical()
-            .max_height(430.0)
-            .show(ui, |ui| {
-                for (index, chapter) in bundle.chapters.iter().enumerate() {
-                    ui.horizontal(|ui| {
-                        ui.label(format!("{}. {}", index + 1, chapter.name));
-                        ui.monospace(format!(
-                            "{:.1}–{:.1}s",
-                            chapter.start_seconds, chapter.end_seconds
-                        ));
-                        if ui.small_button("Cut").clicked() {
-                            let ffmpeg = self.config.ffmpeg_path.clone();
-                            let job_bundle = bundle.clone();
-                            self.start_job("Cut chapter", move || {
-                                Ok(JobValue::Path(cut_chapter(&ffmpeg, &job_bundle, index)?))
-                            });
-                        }
-                        if ui.small_button("Cut & upload").clicked() {
-                            let ffmpeg = self.config.ffmpeg_path.clone();
-                            let r2 = self.config.r2.clone();
-                            let job_bundle = bundle.clone();
-                            self.start_job("Cut & upload chapter", move || {
-                                Ok(JobValue::Bundle(Box::new(cut_and_upload(
-                                    &ffmpeg,
-                                    r2,
-                                    &job_bundle,
-                                    &[index],
-                                )?)))
-                            });
-                        }
+
+        let mut chapter_table = ChapterTable {
+            bundle_dir: &bundle.dir,
+            chapters: &bundle.chapters,
+            uploads: &bundle.manifest.uploads,
+            action: None,
+        };
+        ui.allocate_ui(egui::vec2(ui.available_width(), 430.0), |ui| {
+            chapter_table.show(ui);
+        });
+        if let Some(action) = chapter_table.action {
+            match action {
+                ChapterTableAction::Cut(index) => {
+                    let ffmpeg = self.config.ffmpeg_path.clone();
+                    let job_bundle = bundle.clone();
+                    self.start_job("Cut chapter", move || {
+                        Ok(JobValue::Path(cut_chapter(&ffmpeg, &job_bundle, index)?))
                     });
                 }
-            });
+                ChapterTableAction::CutUpload(index) => {
+                    let ffmpeg = self.config.ffmpeg_path.clone();
+                    let r2 = self.config.r2.clone();
+                    let job_bundle = bundle.clone();
+                    self.start_job("Cut & upload chapter", move || {
+                        Ok(JobValue::Bundle(Box::new(cut_and_upload(
+                            &ffmpeg,
+                            r2,
+                            &job_bundle,
+                            &[index],
+                        )?)))
+                    });
+                }
+            }
+        }
+
         if !bundle.manifest.uploads.is_empty() {
             ui.separator();
             ui.strong("Uploaded files");
@@ -156,6 +158,17 @@ impl VideoManagerApp {
                 });
             }
         }
+
+        ui.separator();
+        ui.collapsing("Manifest JSON", |ui| {
+            if let Ok(value) = serde_json::to_value(&bundle.manifest) {
+                egui::ScrollArea::vertical()
+                    .max_height(280.0)
+                    .show(ui, |ui| {
+                        egui_json_tree::JsonTree::new("manifest-json-preview", &value).show(ui);
+                    });
+            }
+        });
     }
 
     fn start_upload(&mut self, path: PathBuf, bundle_dir: Option<PathBuf>) {

@@ -13,8 +13,10 @@ fn metadata_command_skips_download() {
 
 #[test]
 fn download_command_uses_configured_ffmpeg() {
-    let mut cfg = AppConfig::default();
-    cfg.ffmpeg_path = "/tools/ffmpeg".into();
+    let cfg = AppConfig {
+        ffmpeg_path: "/tools/ffmpeg".into(),
+        ..Default::default()
+    };
     let args = download_video_args(&cfg, Path::new("video.mp4"), "https://youtu.be/abc");
     assert!(
         args.windows(2)

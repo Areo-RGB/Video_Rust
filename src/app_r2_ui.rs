@@ -25,30 +25,21 @@ impl VideoManagerApp {
             });
         }
         ui.separator();
-        egui::ScrollArea::vertical().show(ui, |ui| {
-            for object in &self.r2_objects {
-                ui.horizontal_wrapped(|ui| {
-                    ui.monospace(&object.key);
-                    ui.label(format_bytes(object.size));
-                    if !object.public_url.is_empty() {
-                        ui.hyperlink(&object.public_url);
-                        if ui.small_button("Use in Data JSON").clicked() {
-                            self.new_chapter_name = object
-                                .key
-                                .rsplit('/')
-                                .next()
-                                .unwrap_or("R2 clip")
-                                .trim_end_matches(".mp4")
-                                .replace(['_', '-'], " ");
-                            self.new_chapter_url = object.public_url.clone();
-                            self.tab = Tab::Data;
-                        }
-                    }
-                });
-            }
-            if self.r2_objects.is_empty() {
-                ui.label("No objects loaded.");
-            }
-        });
+
+        if self.r2_objects.is_empty() {
+            ui.label("No objects loaded.");
+            return;
+        }
+
+        let mut table = R2ObjectTable {
+            objects: &self.r2_objects,
+            selection: None,
+        };
+        table.show(ui);
+        if let Some(selection) = table.selection {
+            self.new_chapter_name = selection.name;
+            self.new_chapter_url = selection.url;
+            self.tab = Tab::Data;
+        }
     }
 }

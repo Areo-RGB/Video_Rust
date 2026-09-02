@@ -1,46 +1,168 @@
+#[derive(Debug, garde::Validate)]
+struct SettingsValidation {
+    #[garde(length(min = 1))]
+    workspace_dir: String,
+    #[garde(length(min = 1))]
+    data_json_path: String,
+    #[garde(length(min = 1))]
+    yt_dlp_path: String,
+    #[garde(length(min = 1))]
+    ffmpeg_path: String,
+    #[garde(skip)]
+    r2_active: bool,
+    #[garde(if(cond = self.r2_active, length(min = 1)))]
+    r2_account_id: String,
+    #[garde(if(cond = self.r2_active, length(min = 1)))]
+    r2_bucket: String,
+    #[garde(if(cond = self.r2_active, length(min = 1)))]
+    r2_access_key_id: String,
+    #[garde(if(cond = self.r2_active, length(min = 1)))]
+    r2_secret_access_key: String,
+    #[garde(if(cond = !self.r2_public_base_url.trim().is_empty(), url))]
+    r2_public_base_url: String,
+}
+
+impl SettingsValidation {
+    fn from_config(config: &AppConfig) -> Self {
+        let r2_active = [
+            config.r2.account_id.as_str(),
+            config.r2.bucket.as_str(),
+            config.r2.access_key_id.as_str(),
+            config.r2.secret_access_key.as_str(),
+        ]
+        .iter()
+        .any(|value| !value.trim().is_empty());
+        Self {
+            workspace_dir: config.workspace_dir.clone(),
+            data_json_path: config.data_json_path.clone(),
+            yt_dlp_path: config.yt_dlp_path.clone(),
+            ffmpeg_path: config.ffmpeg_path.clone(),
+            r2_active,
+            r2_account_id: config.r2.account_id.clone(),
+            r2_bucket: config.r2.bucket.clone(),
+            r2_access_key_id: config.r2.access_key_id.clone(),
+            r2_secret_access_key: config.r2.secret_access_key.clone(),
+            r2_public_base_url: config.r2.public_base_url.clone(),
+        }
+    }
+}
+
 impl VideoManagerApp {
     fn ui_settings(&mut self, ui: &mut egui::Ui) {
+        use egui_form::garde::GardeReport;
+        use egui_form::{Form, FormField};
+        use garde::Validate as _;
+
         ui.heading("Settings");
-        path_row(ui, "Workspace", &mut self.config.workspace_dir, true);
-        path_row(ui, "Data JSON", &mut self.config.data_json_path, false);
-        text_row(ui, "yt-dlp", &mut self.config.yt_dlp_path, false);
-        text_row(ui, "FFmpeg", &mut self.config.ffmpeg_path, false);
+        ui.small("Required fields are validated inline. R2 credentials become required once R2 configuration is started; the public base URL is optional for listing but must be a valid URL when present.");
+
+        let validation = SettingsValidation::from_config(&self.config);
+        let mut form = Form::new().add_report(GardeReport::new(validation.validate()));
+
+        ui.horizontal(|ui| {
+            FormField::new(&mut form, "workspace_dir")
+                .label("Workspace")
+                .ui(
+                    ui,
+                    egui::TextEdit::singleline(&mut self.config.workspace_dir).desired_width(420.0),
+                );
+            if ui.button("Browse…").clicked()
+                && let Some(path) = rfd::FileDialog::new().pick_folder()
+            {
+                self.config.workspace_dir = path.to_string_lossy().into_owned();
+            }
+        });
+
+        ui.horizontal(|ui| {
+            FormField::new(&mut form, "data_json_path")
+                .label("Data JSON")
+                .ui(
+                    ui,
+                    egui::TextEdit::singleline(&mut self.config.data_json_path)
+                        .desired_width(420.0),
+                );
+            if ui.button("Browse…").clicked()
+                && let Some(path) = rfd::FileDialog::new()
+                    .add_filter("JSON", &["json"])
+                    .pick_file()
+            {
+                self.config.data_json_path = path.to_string_lossy().into_owned();
+            }
+        });
+
+        FormField::new(&mut form, "yt_dlp_path")
+            .label("yt-dlp")
+            .ui(
+                ui,
+                egui::TextEdit::singleline(&mut self.config.yt_dlp_path).desired_width(420.0),
+            );
+        FormField::new(&mut form, "ffmpeg_path")
+            .label("FFmpeg")
+            .ui(
+                ui,
+                egui::TextEdit::singleline(&mut self.config.ffmpeg_path).desired_width(420.0),
+            );
+
         ui.separator();
         ui.strong("R2 / S3 compatible");
-        text_row(ui, "Account ID", &mut self.config.r2.account_id, false);
-        text_row(ui, "Bucket", &mut self.config.r2.bucket, false);
-        text_row(ui, "Prefix", &mut self.config.r2.prefix, false);
-        text_row(
-            ui,
-            "Public base URL",
-            &mut self.config.r2.public_base_url,
-            false,
-        );
-        text_row(
-            ui,
-            "Access key ID",
-            &mut self.config.r2.access_key_id,
-            false,
-        );
-        text_row(
-            ui,
-            "Secret access key",
-            &mut self.config.r2.secret_access_key,
-            true,
-        );
+        FormField::new(&mut form, "r2_account_id")
+            .label("Account ID")
+            .ui(
+                ui,
+                egui::TextEdit::singleline(&mut self.config.r2.account_id).desired_width(420.0),
+            );
+        FormField::new(&mut form, "r2_bucket")
+            .label("Bucket")
+            .ui(
+                ui,
+                egui::TextEdit::singleline(&mut self.config.r2.bucket).desired_width(420.0),
+            );
+        ui.horizontal(|ui| {
+            ui.label("Prefix");
+            ui.add(egui::TextEdit::singleline(&mut self.config.r2.prefix).desired_width(420.0));
+        });
+        FormField::new(&mut form, "r2_public_base_url")
+            .label("Public base URL")
+            .ui(
+                ui,
+                egui::TextEdit::singleline(&mut self.config.r2.public_base_url)
+                    .desired_width(420.0),
+            );
+        FormField::new(&mut form, "r2_access_key_id")
+            .label("Access key ID")
+            .ui(
+                ui,
+                egui::TextEdit::singleline(&mut self.config.r2.access_key_id)
+                    .desired_width(420.0),
+            );
+        FormField::new(&mut form, "r2_secret_access_key")
+            .label("Secret access key")
+            .ui(
+                ui,
+                egui::TextEdit::singleline(&mut self.config.r2.secret_access_key)
+                    .desired_width(420.0)
+                    .password(true),
+            );
+
         ui.add_space(8.0);
-        if ui.button("Save settings").clicked() {
-            match self.config.save() {
-                Ok(()) => {
-                    self.data_path = self.config.data_json_path.clone();
-                    self.refresh_bundles();
-                    self.yt_version = tool_version(&self.config.yt_dlp_path, "--version");
-                    self.ffmpeg_version = tool_version(&self.config.ffmpeg_path, "-version");
-                    self.log("Settings saved");
+        let save = ui.button("Save settings");
+        if let Some(Ok(())) = form.handle_submit(&save, ui) {
+            if !Path::new(&self.config.workspace_dir).is_dir() {
+                self.log("Settings not saved: workspace directory does not exist");
+            } else {
+                match self.config.save() {
+                    Ok(()) => {
+                        self.data_path = self.config.data_json_path.clone();
+                        self.refresh_bundles();
+                        self.yt_version = tool_version(&self.config.yt_dlp_path, "--version");
+                        self.ffmpeg_version = tool_version(&self.config.ffmpeg_path, "-version");
+                        self.log("Settings saved");
+                    }
+                    Err(error) => self.log(format!("Settings save failed: {error}")),
                 }
-                Err(error) => self.log(format!("Settings save failed: {error}")),
             }
         }
+
         ui.separator();
         ui.label(format!(
             "yt-dlp: {}",

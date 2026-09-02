@@ -7,6 +7,30 @@ on:
   pull_request:
 
 jobs:
+  vendor:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Rust 1.97.1
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.97.1
+
+      - name: Vendor Cargo dependencies
+        shell: bash
+        run: |
+          mkdir -p .cargo
+          cargo vendor vendor > .cargo/config.toml
+          tar -czf cargo-vendor.tar.gz vendor .cargo/config.toml Cargo.lock
+
+      - name: Upload vendored dependencies
+        uses: actions/upload-artifact@v4
+        with:
+          name: cargo-vendor-linux
+          path: cargo-vendor.tar.gz
+          if-no-files-found: error
+
   build:
     strategy:
       fail-fast: false

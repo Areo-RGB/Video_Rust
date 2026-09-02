@@ -110,10 +110,10 @@ fn dotenv_candidates() -> Vec<PathBuf> {
     if let Ok(current) = env::current_dir() {
         result.push(current.join(".env"));
     }
-    if let Ok(exe) = env::current_exe() {
-        if let Some(parent) = exe.parent() {
-            result.push(parent.join(".env"));
-        }
+    if let Ok(exe) = env::current_exe()
+        && let Some(parent) = exe.parent()
+    {
+        result.push(parent.join(".env"));
     }
     result.sort();
     result.dedup();

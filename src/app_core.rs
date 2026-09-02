@@ -41,7 +41,7 @@ impl VideoManagerApp {
             JobValue::Unit => {}
             JobValue::Metadata(metadata) => self.metadata = Some(metadata),
             JobValue::Bundle(bundle) => {
-                self.selected_bundle = Some(bundle);
+                self.selected_bundle = Some(*bundle);
                 self.refresh_bundles();
             }
             JobValue::Bundles(bundles) => self.bundles = bundles,
@@ -57,10 +57,10 @@ impl VideoManagerApp {
                 if let Some(dir) = bundle_dir {
                     match record_uploaded_url(&dir, &relative_name, &url) {
                         Ok(manifest) => {
-                            if let Some(bundle) = &mut self.selected_bundle {
-                                if bundle.dir == dir {
-                                    bundle.manifest = manifest;
-                                }
+                            if let Some(bundle) = &mut self.selected_bundle
+                                && bundle.dir == dir
+                            {
+                                bundle.manifest = manifest;
                             }
                         }
                         Err(error) => {

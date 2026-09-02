@@ -5,11 +5,11 @@ impl VideoManagerApp {
             if ui.button("Refresh").clicked() {
                 self.refresh_bundles();
             }
-            if ui.button("Choose workspace…").clicked() {
-                if let Some(path) = rfd::FileDialog::new().pick_folder() {
-                    self.config.workspace_dir = path.to_string_lossy().into_owned();
-                    self.refresh_bundles();
-                }
+            if ui.button("Choose workspace…").clicked()
+                && let Some(path) = rfd::FileDialog::new().pick_folder()
+            {
+                self.config.workspace_dir = path.to_string_lossy().into_owned();
+                self.refresh_bundles();
             }
         });
         ui.separator();
@@ -88,12 +88,12 @@ impl VideoManagerApp {
                 let job_bundle = bundle.clone();
                 let indices = (0..bundle.chapters.len()).collect::<Vec<_>>();
                 self.start_job("Cut & upload all chapters", move || {
-                    Ok(JobValue::Bundle(cut_and_upload(
+                    Ok(JobValue::Bundle(Box::new(cut_and_upload(
                         &ffmpeg,
                         r2,
                         &job_bundle,
                         &indices,
-                    )?))
+                    )?)))
                 });
             }
             if ui
@@ -102,10 +102,9 @@ impl VideoManagerApp {
                     egui::Button::new("Upload full video"),
                 )
                 .clicked()
+                && let Some(path) = bundle.video_path.clone()
             {
-                if let Some(path) = bundle.video_path.clone() {
-                    self.start_upload(path, Some(bundle.dir.clone()));
-                }
+                self.start_upload(path, Some(bundle.dir.clone()));
             }
             if ui.button("Sync to Data JSON").clicked() {
                 let index = upsert_bundle_playlist(&mut self.data, &bundle);
@@ -136,12 +135,12 @@ impl VideoManagerApp {
                             let r2 = self.config.r2.clone();
                             let job_bundle = bundle.clone();
                             self.start_job("Cut & upload chapter", move || {
-                                Ok(JobValue::Bundle(cut_and_upload(
+                                Ok(JobValue::Bundle(Box::new(cut_and_upload(
                                     &ffmpeg,
                                     r2,
                                     &job_bundle,
                                     &[index],
-                                )?))
+                                )?)))
                             });
                         }
                     });

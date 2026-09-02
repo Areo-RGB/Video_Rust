@@ -8,10 +8,10 @@ impl VideoManagerApp {
                     Ok(JobValue::R2Objects(R2Client::new(cfg)?.list_objects()?))
                 });
             }
-            if ui.button("Upload file…").clicked() {
-                if let Some(path) = rfd::FileDialog::new().pick_file() {
-                    self.start_upload(path, None);
-                }
+            if ui.button("Upload file…").clicked()
+                && let Some(path) = rfd::FileDialog::new().pick_file()
+            {
+                self.start_upload(path, None);
             }
         });
         if !self.last_uploaded_url.is_empty() {
@@ -39,8 +39,7 @@ impl VideoManagerApp {
                                 .next()
                                 .unwrap_or("R2 clip")
                                 .trim_end_matches(".mp4")
-                                .replace('_', " ")
-                                .replace('-', " ");
+                                .replace(['_', '-'], " ");
                             self.new_chapter_url = object.public_url.clone();
                             self.tab = Tab::Data;
                         }

@@ -224,6 +224,6 @@ fn largest_video(dir: &Path) -> Result<Option<PathBuf>> {
             candidates.push((len, path));
         }
     }
-    candidates.sort_by(|a, b| b.0.cmp(&a.0));
+    candidates.sort_by_key(|b| std::cmp::Reverse(b.0));
     Ok(candidates.into_iter().next().map(|(_, path)| path))
 }

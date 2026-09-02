@@ -290,10 +290,10 @@ pub fn download_bundle(config: &AppConfig, url: &str) -> Result<BundleInfo> {
             .files
             .insert("transcript".into(), "transcript.txt".into());
     }
-    if let Some(path) = &thumbnail_path {
-        if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-            manifest.files.insert("thumbnail".into(), name.into());
-        }
+    if let Some(path) = &thumbnail_path
+        && let Some(name) = path.file_name().and_then(|n| n.to_str())
+    {
+        manifest.files.insert("thumbnail".into(), name.into());
     }
     save_manifest(&bundle_dir, &manifest)?;
 

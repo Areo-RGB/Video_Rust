@@ -8,7 +8,7 @@ use crate::model::{BundleInfo, R2Object, VideoMetadata};
 pub enum JobValue {
     Unit,
     Metadata(VideoMetadata),
-    Bundle(BundleInfo),
+    Bundle(Box<BundleInfo>),
     Bundles(Vec<PathBuf>),
     Path(PathBuf),
     Paths(Vec<PathBuf>),

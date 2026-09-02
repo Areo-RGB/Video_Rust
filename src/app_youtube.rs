@@ -26,7 +26,7 @@ impl VideoManagerApp {
                 let cfg = self.config.clone();
                 let url = self.youtube_url.trim().to_owned();
                 self.start_job("Download video", move || {
-                    Ok(JobValue::Bundle(download_bundle(&cfg, &url)?))
+                    Ok(JobValue::Bundle(Box::new(download_bundle(&cfg, &url)?)))
                 });
             }
         });

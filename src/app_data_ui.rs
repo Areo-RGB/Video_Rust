@@ -5,20 +5,19 @@ impl VideoManagerApp {
         ui.horizontal(|ui| {
             ui.label("File");
             ui.add(egui::TextEdit::singleline(&mut self.data_path).desired_width(420.0));
-            if ui.button("Open…").clicked() {
-                if let Some(path) = rfd::FileDialog::new()
+            if ui.button("Open…").clicked()
+                && let Some(path) = rfd::FileDialog::new()
                     .add_filter("JSON", &["json"])
                     .pick_file()
-                {
-                    self.data_path = path.to_string_lossy().into_owned();
-                    match load_data(&path) {
-                        Ok(data) => {
-                            self.data = data;
-                            self.selected_playlist = None;
-                            self.log("Loaded data JSON");
-                        }
-                        Err(error) => self.log(format!("Load failed: {error}")),
+            {
+                self.data_path = path.to_string_lossy().into_owned();
+                match load_data(&path) {
+                    Ok(data) => {
+                        self.data = data;
+                        self.selected_playlist = None;
+                        self.log("Loaded data JSON");
                     }
+                    Err(error) => self.log(format!("Load failed: {error}")),
                 }
             }
             if ui.button("Save").clicked() {
@@ -58,12 +57,11 @@ impl VideoManagerApp {
                 egui::Button::new("Add / sync selected local workspace"),
             )
             .clicked()
+            && let Some(bundle) = &self.selected_bundle
         {
-            if let Some(bundle) = &self.selected_bundle {
-                let index = upsert_bundle_playlist(&mut self.data, bundle);
-                self.selected_playlist = Some(index);
-                self.log("Synced selected workspace into data JSON");
-            }
+            let index = upsert_bundle_playlist(&mut self.data, bundle);
+            self.selected_playlist = Some(index);
+            self.log("Synced selected workspace into data JSON");
         }
         ui.small("Uploaded clip URLs in manifest.json are copied to matching chapter videoUrl fields. If only the full video was uploaded, that R2 URL is used as the chapter fallback.");
         ui.separator();
@@ -95,13 +93,13 @@ impl VideoManagerApp {
         if let Some(index) = choose {
             self.selected_playlist = Some(index);
         }
-        if let Some(index) = self.selected_playlist {
-            if ui.button("Delete selected playlist").clicked() {
-                if let Err(error) = remove_playlist(&mut self.data, index) {
-                    self.log(error.to_string());
-                }
-                self.selected_playlist = None;
+        if let Some(index) = self.selected_playlist
+            && ui.button("Delete selected playlist").clicked()
+        {
+            if let Err(error) = remove_playlist(&mut self.data, index) {
+                self.log(error.to_string());
             }
+            self.selected_playlist = None;
         }
     }
 

@@ -1,0 +1,21 @@
+[
+  {
+    "name": "Training",
+    "type": "direct",
+    "videoId": "SOURCE_VIDEO_ID",
+    "chapters": [
+      {
+        "name": "Pressing trigger",
+        "startSeconds": 15.0,
+        "endSeconds": 38.5,
+        "videoUrl": "https://media.example.com/youtube-clips/Training/01-Pressing_trigger.mp4"
+      },
+      {
+        "name": "Second phase",
+        "startSeconds": 42.0,
+        "endSeconds": 65.0,
+        "videoUrl": "https://media.example.com/youtube-clips/Training/02-Second_phase.mp4"
+      }
+    ]
+  }
+]

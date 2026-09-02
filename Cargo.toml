@@ -1,0 +1,22 @@
+[package]
+name = "video-manager-egui"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.97"
+
+[dependencies]
+eframe = { version = "0.36.1", default-features = false, features = ["default_fonts", "glow", "links", "x11", "wayland"] }
+rfd = "0.17.2"
+reqwest = { version = "0.13.4", default-features = false, features = ["blocking", "rustls"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+sha2 = "0.10"
+hmac = "0.12"
+hex = "0.4"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+quick-xml = { version = "0.42", features = ["serialize"] }
+dirs = "6"
+
+[dev-dependencies]
+tempfile = "3"

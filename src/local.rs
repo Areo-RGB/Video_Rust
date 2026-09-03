@@ -56,7 +56,7 @@ pub fn load_bundle(dir: &Path) -> Result<BundleInfo> {
     };
     let video_path = largest_video(dir)?;
     let transcript_path = optional_file(dir, "transcript.txt");
-    let thumbnail_path = [
+    let mut thumbnail_path = [
         "thumbnail.jpg",
         "thumbnail.jpeg",
         "thumbnail.png",
@@ -72,6 +72,19 @@ pub fn load_bundle(dir: &Path) -> Result<BundleInfo> {
         files: BTreeMap::new(),
         uploads: BTreeMap::new(),
     });
+
+    if thumbnail_path.is_none() {
+        let video_id = if chapter_file.video_id.trim().is_empty() {
+            manifest.video_id.trim()
+        } else {
+            chapter_file.video_id.trim()
+        };
+        if !video_id.is_empty() {
+            thumbnail_path = Some(PathBuf::from(format!(
+                "https://img.youtube.com/vi/{video_id}/hqdefault.jpg"
+            )));
+        }
+    }
 
     Ok(BundleInfo {
         dir: dir.to_path_buf(),

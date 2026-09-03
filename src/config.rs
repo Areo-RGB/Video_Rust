@@ -8,8 +8,7 @@ use serde::{Deserialize, Serialize};
 use crate::error::{AppError, Result};
 
 pub const WORKSPACE_DIR: &str = "/run/media/paul/Seagate Portable Drive/flutter_desktop/";
-pub const DATA_JSON_SOURCE_URL: &str =
-    "https://github.com/Areo-RGB/data.json/blob/main/data.json";
+pub const DATA_JSON_SOURCE_URL: &str = "https://github.com/Areo-RGB/data.json/blob/main/data.json";
 pub const DATA_JSON_RAW_URL: &str =
     "https://raw.githubusercontent.com/Areo-RGB/data.json/main/data.json";
 

@@ -25,8 +25,20 @@ fn local_file_uri_supports_unix_and_windows_paths() {
 
 #[test]
 fn local_filter_is_case_insensitive_and_searches_secondary_text() {
-    assert!(matches_local_filter("01-Intro.mp4", "https://media.example/Intro.mp4", "intro"));
-    assert!(matches_local_filter("01-Intro.mp4", "https://media.example/Intro.mp4", "MEDIA.EXAMPLE"));
+    assert!(matches_local_filter(
+        "01-Intro.mp4",
+        "https://media.example/Intro.mp4",
+        "intro"
+    ));
+    assert!(matches_local_filter(
+        "01-Intro.mp4",
+        "https://media.example/Intro.mp4",
+        "MEDIA.EXAMPLE"
+    ));
     assert!(matches_local_filter("anything", "else", "   "));
-    assert!(!matches_local_filter("01-Intro.mp4", "https://media.example/Intro.mp4", "drill"));
+    assert!(!matches_local_filter(
+        "01-Intro.mp4",
+        "https://media.example/Intro.mp4",
+        "drill"
+    ));
 }

@@ -3,33 +3,18 @@ impl VideoManagerApp {
         ui.heading("Data JSON");
         ui.label("Edits the same playlist/chapter shape used by the Flutter video player: type, videoId/videoUrl, and timestamped chapters with optional per-chapter R2 URLs.");
         ui.horizontal(|ui| {
-            ui.label("File");
-            ui.add(egui::TextEdit::singleline(&mut self.data_path).desired_width(420.0));
-            if ui.button("Open…").clicked()
-                && let Some(path) = rfd::FileDialog::new()
-                    .add_filter("JSON", &["json"])
-                    .pick_file()
-            {
-                self.data_path = path.to_string_lossy().into_owned();
-                match load_data(&path) {
-                    Ok(data) => {
-                        self.data = data;
-                        self.selected_playlist = None;
-                        self.log("Loaded data JSON");
-                    }
-                    Err(error) => self.log(format!("Load failed: {error}")),
-                }
+            if ui.button("Fetch").clicked() {
+                self.fetch_data_json();
             }
-            if ui.button("Save").clicked() {
-                let path = PathBuf::from(&self.data_path);
-                match save_data(&path, &self.data) {
-                    Ok(()) => {
-                        self.config.data_json_path = self.data_path.clone();
-                        self.log("Saved data JSON");
-                    }
-                    Err(error) => self.log(format!("Save failed: {error}")),
-                }
-            }
+            ui.label("Source:");
+            ui.hyperlink(&self.data_path);
+            ui.separator();
+            let chapter_count: usize = self.data.playlists.iter().map(|p| p.chapters.len()).sum();
+            ui.monospace(format!(
+                "{} playlists · {} chapters",
+                self.data.playlists.len(),
+                chapter_count
+            ));
         });
         ui.separator();
         ui.columns(2, |columns| {
@@ -45,6 +30,12 @@ impl VideoManagerApp {
                         egui_json_tree::JsonTree::new("data-json-preview", &value).show(ui);
                     });
             }
+        });
+    }
+
+    fn fetch_data_json(&mut self) {
+        self.start_job("Fetch data JSON", || {
+            Ok(JobValue::Data(fetch_data(DATA_JSON_RAW_URL)?))
         });
     }
 

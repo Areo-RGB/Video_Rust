@@ -7,6 +7,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{AppError, Result};
 
+pub const WORKSPACE_DIR: &str = "/run/media/paul/Seagate Portable Drive/flutter_desktop/";
+pub const DATA_JSON_SOURCE_URL: &str =
+    "https://github.com/Areo-RGB/data.json/blob/main/data.json";
+pub const DATA_JSON_RAW_URL: &str =
+    "https://raw.githubusercontent.com/Areo-RGB/data.json/main/data.json";
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct R2Config {
     #[serde(default)]
@@ -34,13 +40,9 @@ pub struct AppConfig {
 
 impl Default for AppConfig {
     fn default() -> Self {
-        let base = dirs::video_dir()
-            .or_else(dirs::home_dir)
-            .unwrap_or_else(|| PathBuf::from("."))
-            .join("VideoManager");
         Self {
-            workspace_dir: base.to_string_lossy().into_owned(),
-            data_json_path: base.join("data.json").to_string_lossy().into_owned(),
+            workspace_dir: WORKSPACE_DIR.into(),
+            data_json_path: DATA_JSON_SOURCE_URL.into(),
             yt_dlp_path: "yt-dlp".into(),
             ffmpeg_path: "ffmpeg".into(),
             r2: R2Config::default(),
@@ -73,6 +75,10 @@ impl AppConfig {
             }
         }
         cfg.apply_env_map(&vars);
+
+        // These are intentionally application constants rather than user settings.
+        cfg.workspace_dir = WORKSPACE_DIR.into();
+        cfg.data_json_path = DATA_JSON_SOURCE_URL.into();
         cfg
     }
 
@@ -81,13 +87,14 @@ impl AppConfig {
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent).map_err(|e| AppError::io(parent, e))?;
         }
-        let json = serde_json::to_string_pretty(self)?;
+        let mut saved = self.clone();
+        saved.workspace_dir = WORKSPACE_DIR.into();
+        saved.data_json_path = DATA_JSON_SOURCE_URL.into();
+        let json = serde_json::to_string_pretty(&saved)?;
         fs::write(&path, format!("{json}\n")).map_err(|e| AppError::io(path, e))
     }
 
     pub fn apply_env_map(&mut self, vars: &BTreeMap<String, String>) {
-        set_if_present(&mut self.workspace_dir, vars, "VIDEO_MANAGER_WORKSPACE");
-        set_if_present(&mut self.data_json_path, vars, "VIDEO_MANAGER_DATA_JSON");
         set_if_present(&mut self.yt_dlp_path, vars, "YT_DLP_PATH");
         set_if_present(&mut self.ffmpeg_path, vars, "FFMPEG_PATH");
         set_if_present(&mut self.r2.account_id, vars, "R2_ACCOUNT_ID");

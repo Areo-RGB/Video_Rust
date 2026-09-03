@@ -16,6 +16,9 @@ pub fn local_layout_mode(available_width: f32) -> LocalLayoutMode {
 
 pub fn local_file_uri(path: &Path) -> String {
     let raw = path.to_string_lossy().replace('\\', "/");
+    if raw.starts_with("http://") || raw.starts_with("https://") {
+        return raw;
+    }
     let normalized = if raw.starts_with('/') {
         raw
     } else {

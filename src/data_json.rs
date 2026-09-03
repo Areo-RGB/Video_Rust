@@ -5,15 +5,28 @@ use crate::error::{AppError, Result};
 use crate::local::cut_relative_name;
 use crate::model::{BundleInfo, Chapter, DataFile, Playlist};
 
-pub fn load_data(path: &Path) -> Result<DataFile> {
-    let text = fs::read_to_string(path).map_err(|e| AppError::io(path, e))?;
-    let value: serde_json::Value = serde_json::from_str(&text)?;
+pub fn parse_data(text: &str) -> Result<DataFile> {
+    let value: serde_json::Value = serde_json::from_str(text)?;
     if value.is_array() {
         let playlists: Vec<Playlist> = serde_json::from_value(value)?;
         Ok(DataFile { playlists })
     } else {
         Ok(serde_json::from_value(value)?)
     }
+}
+
+pub fn load_data(path: &Path) -> Result<DataFile> {
+    let text = fs::read_to_string(path).map_err(|e| AppError::io(path, e))?;
+    parse_data(&text)
+}
+
+pub fn fetch_data(url: &str) -> Result<DataFile> {
+    let text = reqwest::blocking::Client::new()
+        .get(url)
+        .send()?
+        .error_for_status()?
+        .text()?;
+    parse_data(&text)
 }
 
 pub fn save_data(path: &Path, data: &DataFile) -> Result<()> {

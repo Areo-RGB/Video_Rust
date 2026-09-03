@@ -11,6 +11,21 @@ Native desktop replacement for the YouTube, local-video workspace, Cloudflare R2
 - Download subtitles when available and convert VTT into a readable **timestamped** `transcript.txt`.
 - Save normalized `chapters.json`, an optional thumbnail, and `manifest.json`.
 
+### Chrome / Chromium Native Messaging
+
+The same `video-manager-egui` executable also acts as the native host for the YouTube Chapter Clipper extension.
+
+- Host name: `com.fluent_desktop.youtube_clipper`.
+- The GUI automatically installs/repairs the user-scope native-host manifest on startup; there is no separate Register Host step.
+- Supported Chromium-family targets are Chrome, Chromium, Edge, Brave, and Vivaldi.
+- Browser launches are detected before egui starts, so Chrome gets a pure stdin/stdout Native Messaging process rather than a GUI window.
+- The existing extension actions are supported: `ping`, `download_chapter`, `download_full_video`, `open_clip`, plus compatibility `get_jobs`.
+- Chapter downloads use the configured `yt-dlp` and FFmpeg paths. Full-video downloads reuse the normal Rust workspace downloader.
+- In development, registration includes the known Chapter Clipper extension ID plus every valid extension ID discovered in installed Chromium profiles. Chromium does not allow a wildcard in `allowed_origins`.
+- Additional development extension IDs can be supplied with `VIDEO_MANAGER_NATIVE_EXTENSION_IDS`, separated by commas, semicolons, or whitespace.
+
+The host intentionally does not expose an arbitrary shell-command action. Unknown actions return a JSON error; media tools are invoked with explicit argument arrays.
+
 ### Local files
 
 - Scan the configured workspace for downloaded or manually created video folders.
@@ -94,6 +109,7 @@ R2 credentials are **not hardcoded**. Configure them in the Settings tab or thro
 - `R2_PUBLIC_BASE_URL`
 - `R2_ACCESS_KEY_ID`
 - `R2_SECRET_ACCESS_KEY`
+- `VIDEO_MANAGER_NATIVE_EXTENSION_IDS`
 
 A public base URL is required for uploads because the generated URL is written into manifests and `data.json`.
 

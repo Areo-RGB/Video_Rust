@@ -5,6 +5,7 @@ pub mod error;
 pub mod jobs;
 pub mod local;
 pub mod model;
+pub mod native_host;
 pub mod pipeline;
 pub mod process;
 pub mod r2;

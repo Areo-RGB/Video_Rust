@@ -9,4 +9,5 @@ pub mod native_host;
 pub mod pipeline;
 pub mod process;
 pub mod r2;
+pub mod ui_helpers;
 pub mod youtube;

@@ -3,10 +3,9 @@ use std::sync::mpsc::{Receiver, Sender, channel};
 
 use eframe::egui;
 
-use crate::config::AppConfig;
+use crate::config::{AppConfig, DATA_JSON_RAW_URL, DATA_JSON_SOURCE_URL};
 use crate::data_json::{
-    add_chapter, add_playlist, load_data, remove_chapter, remove_playlist, save_data,
-    upsert_bundle_playlist,
+    add_chapter, add_playlist, fetch_data, remove_chapter, remove_playlist, upsert_bundle_playlist,
 };
 use crate::jobs::{JobMessage, JobValue, spawn_job};
 use crate::local::{
@@ -61,6 +60,7 @@ pub struct VideoManagerApp {
     metadata: Option<VideoMetadata>,
     bundles: Vec<PathBuf>,
     selected_bundle: Option<BundleInfo>,
+    local_file_filter: String,
     r2_objects: Vec<R2Object>,
     data: DataFile,
     data_path: String,
@@ -83,8 +83,7 @@ pub struct VideoManagerApp {
 impl Default for VideoManagerApp {
     fn default() -> Self {
         let config = AppConfig::load();
-        let data_path = config.data_json_path.clone();
-        let data = load_data(Path::new(&data_path)).unwrap_or_default();
+        let data_path = DATA_JSON_SOURCE_URL.to_owned();
         let bundles = scan_bundles(Path::new(&config.workspace_dir)).unwrap_or_default();
         let (job_tx, job_rx) = channel();
         let yt_version = tool_version(&config.yt_dlp_path, "--version");
@@ -96,8 +95,9 @@ impl Default for VideoManagerApp {
             metadata: None,
             bundles,
             selected_bundle: None,
+            local_file_filter: String::new(),
             r2_objects: Vec::new(),
-            data,
+            data: DataFile::default(),
             data_path,
             selected_playlist: None,
             new_playlist: String::new(),

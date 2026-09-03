@@ -1,10 +1,6 @@
 #[derive(Debug, garde::Validate)]
 struct SettingsValidation {
     #[garde(length(min = 1))]
-    workspace_dir: String,
-    #[garde(length(min = 1))]
-    data_json_path: String,
-    #[garde(length(min = 1))]
     yt_dlp_path: String,
     #[garde(length(min = 1))]
     ffmpeg_path: String,
@@ -33,8 +29,6 @@ impl SettingsValidation {
         .iter()
         .any(|value| !value.trim().is_empty());
         Self {
-            workspace_dir: config.workspace_dir.clone(),
-            data_json_path: config.data_json_path.clone(),
             yt_dlp_path: config.yt_dlp_path.clone(),
             ffmpeg_path: config.ffmpeg_path.clone(),
             r2_active,
@@ -54,41 +48,10 @@ impl VideoManagerApp {
         use garde::Validate as _;
 
         ui.heading("Settings");
-        ui.small("Required fields are validated inline. R2 credentials become required once R2 configuration is started; the public base URL is optional for listing but must be a valid URL when present.");
+        ui.small("Tool paths are validated inline. R2 credentials become required once R2 configuration is started; the public base URL is optional for listing but must be a valid URL when present.");
 
         let validation = SettingsValidation::from_config(&self.config);
         let mut form = Form::new().add_report(GardeReport::new(validation.validate()));
-
-        ui.horizontal(|ui| {
-            FormField::new(&mut form, "workspace_dir")
-                .label("Workspace")
-                .ui(
-                    ui,
-                    egui::TextEdit::singleline(&mut self.config.workspace_dir).desired_width(420.0),
-                );
-            if ui.button("Browse…").clicked()
-                && let Some(path) = rfd::FileDialog::new().pick_folder()
-            {
-                self.config.workspace_dir = path.to_string_lossy().into_owned();
-            }
-        });
-
-        ui.horizontal(|ui| {
-            FormField::new(&mut form, "data_json_path")
-                .label("Data JSON")
-                .ui(
-                    ui,
-                    egui::TextEdit::singleline(&mut self.config.data_json_path)
-                        .desired_width(420.0),
-                );
-            if ui.button("Browse…").clicked()
-                && let Some(path) = rfd::FileDialog::new()
-                    .add_filter("JSON", &["json"])
-                    .pick_file()
-            {
-                self.config.data_json_path = path.to_string_lossy().into_owned();
-            }
-        });
 
         FormField::new(&mut form, "yt_dlp_path")
             .label("yt-dlp")
@@ -147,19 +110,14 @@ impl VideoManagerApp {
         ui.add_space(8.0);
         let save = ui.button("Save settings");
         if let Some(Ok(())) = form.handle_submit(&save, ui) {
-            if !Path::new(&self.config.workspace_dir).is_dir() {
-                self.log("Settings not saved: workspace directory does not exist");
-            } else {
-                match self.config.save() {
-                    Ok(()) => {
-                        self.data_path = self.config.data_json_path.clone();
-                        self.refresh_bundles();
-                        self.yt_version = tool_version(&self.config.yt_dlp_path, "--version");
-                        self.ffmpeg_version = tool_version(&self.config.ffmpeg_path, "-version");
-                        self.log("Settings saved");
-                    }
-                    Err(error) => self.log(format!("Settings save failed: {error}")),
+            match self.config.save() {
+                Ok(()) => {
+                    self.refresh_bundles();
+                    self.yt_version = tool_version(&self.config.yt_dlp_path, "--version");
+                    self.ffmpeg_version = tool_version(&self.config.ffmpeg_path, "-version");
+                    self.log("Settings saved");
                 }
+                Err(error) => self.log(format!("Settings save failed: {error}")),
             }
         }
 
@@ -172,7 +130,7 @@ impl VideoManagerApp {
             "FFmpeg: {}",
             self.ffmpeg_version.as_deref().unwrap_or("not found")
         ));
-        ui.small("Environment overrides: VIDEO_MANAGER_WORKSPACE, VIDEO_MANAGER_DATA_JSON, YT_DLP_PATH, FFMPEG_PATH, R2_ACCOUNT_ID, R2_BUCKET, R2_PREFIX, R2_PUBLIC_BASE_URL, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY. A .env beside the executable or in the working directory is also read.");
+        ui.small("Environment overrides: YT_DLP_PATH, FFMPEG_PATH, R2_ACCOUNT_ID, R2_BUCKET, R2_PREFIX, R2_PUBLIC_BASE_URL, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY. A .env beside the executable or in the working directory is also read.");
     }
 
     fn ui_log(&mut self, ui: &mut egui::Ui) {

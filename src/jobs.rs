@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 
 use crate::error::Result;
-use crate::model::{BundleInfo, R2Object, VideoMetadata};
+use crate::model::{BundleInfo, DataFile, R2Object, VideoMetadata};
 
 #[derive(Debug)]
 pub enum JobValue {
@@ -10,6 +10,7 @@ pub enum JobValue {
     Metadata(VideoMetadata),
     Bundle(Box<BundleInfo>),
     Bundles(Vec<PathBuf>),
+    Data(DataFile),
     Path(PathBuf),
     Paths(Vec<PathBuf>),
     R2Objects(Vec<R2Object>),

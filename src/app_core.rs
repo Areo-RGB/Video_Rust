@@ -2,7 +2,11 @@ impl VideoManagerApp {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         cc.egui_ctx.set_visuals(egui::Visuals::dark());
         egui_extras::install_image_loaders(&cc.egui_ctx);
-        Self::default()
+        let mut app = Self::default();
+        app.start_job("Fetch data JSON", || {
+            Ok(JobValue::Data(fetch_data(DATA_JSON_RAW_URL)?))
+        });
+        app
     }
 
     fn log(&mut self, message: impl Into<String>) {
@@ -46,6 +50,10 @@ impl VideoManagerApp {
                 self.refresh_bundles();
             }
             JobValue::Bundles(bundles) => self.bundles = bundles,
+            JobValue::Data(data) => {
+                self.data = data;
+                self.selected_playlist = None;
+            }
             JobValue::Path(path) => self.log(format!("Created {}", path.display())),
             JobValue::Paths(paths) => self.log(format!("Created {} clip(s)", paths.len())),
             JobValue::R2Objects(objects) => self.r2_objects = objects,

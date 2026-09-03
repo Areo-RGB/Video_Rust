@@ -6,7 +6,8 @@ use serde_json::{Value, json};
 use tempfile::tempdir;
 use video_manager_egui::native_host::{
     HOST_NAME, KNOWN_EXTENSION_ID, NativeHostBackend, allowed_origins_from_ids,
-    discover_extension_ids_in_roots, dispatch_message, is_native_host_launch, run_host_loop_with_io,
+    discover_extension_ids_in_roots, dispatch_message, is_native_host_launch,
+    run_host_loop_with_io,
 };
 
 #[derive(Default)]
@@ -59,7 +60,10 @@ fn allowed_origins_include_known_and_discovered_extensions() {
         KNOWN_EXTENSION_ID.to_string(),
         "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string(),
     ]);
-    assert_eq!(origins[0], "chrome-extension://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/");
+    assert_eq!(
+        origins[0],
+        "chrome-extension://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/"
+    );
     assert!(origins.contains(&format!("chrome-extension://{KNOWN_EXTENSION_ID}/")));
 }
 
@@ -67,7 +71,12 @@ fn allowed_origins_include_known_and_discovered_extensions() {
 fn discovers_extension_ids_from_preferences_and_extensions_directories() {
     let root = tempdir().unwrap();
     let profile = root.path().join("Default");
-    fs::create_dir_all(profile.join("Extensions").join("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")).unwrap();
+    fs::create_dir_all(
+        profile
+            .join("Extensions")
+            .join("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
+    )
+    .unwrap();
     fs::write(
         profile.join("Preferences"),
         r#"{"extensions":{"settings":{"cccccccccccccccccccccccccccccccc":{},"INVALID":{}}}}"#,
@@ -99,7 +108,12 @@ fn dispatch_preserves_extension_response_contract() {
 
     let unknown = dispatch_message(&mut backend, &json!({"action":"anything_goes"}));
     assert_eq!(unknown["success"], false);
-    assert!(unknown["error"].as_str().unwrap().contains("Unknown action"));
+    assert!(
+        unknown["error"]
+            .as_str()
+            .unwrap()
+            .contains("Unknown action")
+    );
 }
 
 #[test]
@@ -130,4 +144,55 @@ fn host_loop_reads_and_writes_multiple_framed_messages() {
     let second: Value = serde_json::from_str(&second).unwrap();
     assert_eq!(first["action"], "ping");
     assert_eq!(second["action"], "download_full_video");
+}
+
+#[test]
+fn chapter_download_args_use_ffmpeg_and_requested_section() {
+    use std::path::Path;
+    use video_manager_egui::config::{AppConfig, R2Config};
+    use video_manager_egui::native_host::chapter_download_args;
+
+    let config = AppConfig {
+        workspace_dir: "/tmp/work".into(),
+        data_json_path: "/tmp/data.json".into(),
+        yt_dlp_path: "yt-dlp-custom".into(),
+        ffmpeg_path: "/opt/ffmpeg".into(),
+        r2: R2Config::default(),
+    };
+    let args = chapter_download_args(
+        &config,
+        Path::new("/tmp/clip.mp4"),
+        "https://www.youtube.com/watch?v=abc",
+        12.5,
+        42.0,
+    );
+
+    assert!(
+        args.windows(2)
+            .any(|pair| pair == ["--ffmpeg-location", "/opt/ffmpeg"])
+    );
+    assert!(
+        args.windows(2)
+            .any(|pair| pair == ["--download-sections", "*12.5-42"])
+    );
+    assert!(args.iter().any(|arg| arg == "--force-keyframes-at-cuts"));
+    assert_eq!(args.last().unwrap(), "https://www.youtube.com/watch?v=abc");
+}
+
+#[test]
+fn browser_chapter_normalization_deduplicates_and_rejects_invalid_ranges() {
+    use video_manager_egui::native_host::normalize_browser_chapters;
+
+    let chapters = normalize_browser_chapters(&json!([
+        {"title":"Intro", "startSeconds":0, "endSeconds":10},
+        {"title":"Duplicate", "startSeconds":0, "endSeconds":12},
+        {"name":"Drill", "start_time":10, "end_time":25},
+        {"title":"Invalid", "startSeconds":30, "endSeconds":30}
+    ]));
+
+    assert_eq!(chapters.len(), 2);
+    assert_eq!(chapters[0].name, "Intro");
+    assert_eq!(chapters[1].name, "Drill");
+    assert_eq!(chapters[1].start_seconds, 10.0);
+    assert_eq!(chapters[1].end_seconds, 25.0);
 }

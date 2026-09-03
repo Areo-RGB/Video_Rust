@@ -21,7 +21,7 @@ egui_table = "0.10"
 egui_dnd = "0.17"
 egui_form = { version = "0.10", features = ["validator_garde"] }
 egui_json_tree = "0.17"
-egui_extras = { version = "0.36.1", default-features = false, features = ["file", "image"] }
+egui_extras = { version = "0.36.1", default-features = false, features = ["file", "http", "image"] }
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
 garde = { version = "0.23", features = ["derive", "url"] }
 native_messaging = { version = "0.3", default-features = false, features = ["install", "windows-registry"] }
